@@ -3,23 +3,28 @@
   "type": "module",
   "version": "0.0.1",
   "scripts": {
-    "dev": "astro dev --remote",
-    "build": "astro build",
+    "dev": "astro dev --remote --host",
+    "build": "astro build --remote",
     "preview": "astro preview",
     "astro": "astro"
   },
   "dependencies": {
     "@astrojs/db": "^0.14.14",
+    "@astrojs/node": "^9.2.2",
     "@astrojs/react": "^4.3.0",
     "@tailwindcss/vite": "^4.1.7",
     "@types/react": "^19.1.5",
     "@types/react-dom": "^19.1.5",
     "astro": "^5.8.0",
     "deck.gl": "^9.1.12",
+    "lodash-es": "^4.17.21",
     "mapbox-gl": "^3.12.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-map-gl": "^8.0.4",
     "tailwindcss": "^4.1.7"
+  },
+  "devDependencies": {
+    "@types/lodash-es": "^4.17.12"
   }
 }

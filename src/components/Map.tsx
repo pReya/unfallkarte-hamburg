@@ -2,143 +2,227 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import ReactMapGl from "react-map-gl/mapbox";
 import DeckGL from "@deck.gl/react";
 import { MVTLayer } from "deck.gl";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { Accident } from "../types/accidents";
+import debounce from "lodash-es/debounce";
+
+interface TooltipState {
+  id: string | null;
+  pointerX: number | null;
+  pointerY: number | null;
+}
+
+const INITIAL_VIEW_STATE = {
+  longitude: 9.9911,
+  latitude: 53.5531,
+  zoom: 12,
+};
 
 function Map() {
-  const [tooltip, setTooltip] = useState<{
-    id: string | null;
-    pointerX: number | null;
-    pointerY: number | null;
-  }>({
+  const [tooltip, setTooltip] = useState<TooltipState>({
     id: null,
     pointerX: null,
     pointerY: null,
   });
-  const [poiData, setPoiData] = useState();
-  const [zoom, setZoom] = useState(12); // Track zoom level
 
-  useEffect(() => {
-    let ignore = false;
+  const [poiData, setPoiData] = useState<Accident | null>();
+  const [zoom, setZoom] = useState(12);
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedPoiId, setSelectedPoiId] = useState<string | null>(null);
 
-    if (tooltip.id) {
-      setPoiData(null);
+  const handlePoiClick = useCallback((id: string) => {
+    console.log("POI clicked:", id);
+    setSelectedPoiId(id);
+    // Add your custom click behavior here
+  }, []);
 
-      fetch(`/api/poi/${tooltip.id}`)
-        .then((response) => response.json())
-        .then((result) => {
-          if (!ignore) {
-            setPoiData(result);
-          }
-        });
+  // Ref for request cancellation
+  const currentFetchController = useRef<AbortController | null>(null);
+
+  // Fetch function (not debounced yet)
+  const fetchPoiData = useCallback(async (id: string) => {
+    if (!id) return;
+
+    // Abort any ongoing fetch
+    if (currentFetchController.current) {
+      currentFetchController.current.abort();
     }
 
+    setIsLoading(true);
+    const controller = new AbortController();
+    currentFetchController.current = controller;
+
+    try {
+      const response = await fetch(`/api/poi/${id}`, {
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch POI data");
+      }
+
+      const result = await response.json();
+
+      // Only update if this is still the current request
+      if (!controller.signal.aborted) {
+        setPoiData(result);
+      }
+    } catch (error) {
+      if (error instanceof Error && error.name !== "AbortError") {
+        console.error("Error fetching POI data:", error);
+        setPoiData(null);
+      }
+    } finally {
+      if (!controller.signal.aborted) {
+        setIsLoading(false);
+      }
+    }
+  }, []);
+
+  // Create debounced version using lodash
+  const debouncedFetch = useMemo(
+    () => debounce(fetchPoiData, 300),
+    [fetchPoiData]
+  );
+
+  // Effect to handle tooltip ID changes
+  useEffect(() => {
+    if (tooltip.id) {
+      debouncedFetch(tooltip.id);
+    } else {
+      // Clear data immediately when hovering away
+      setPoiData(null);
+      setIsLoading(false);
+
+      // Cancel debounced function and any pending requests
+      debouncedFetch.cancel();
+      if (currentFetchController.current) {
+        currentFetchController.current.abort();
+      }
+    }
+
+    // Cleanup on unmount
     return () => {
-      ignore = true;
+      debouncedFetch.cancel();
+      if (currentFetchController.current) {
+        currentFetchController.current.abort();
+      }
     };
-  }, [tooltip.id]);
+  }, [tooltip.id, debouncedFetch]);
 
   const renderTooltip = () => {
     const { id, pointerX, pointerY } = tooltip || {};
     return (
       id &&
       pointerX &&
-      pointerY && (
+      pointerY &&
+      poiData && (
         <div
           className="absolute pointer-events-none bg-zinc-500/80 w-64 h-auto p-2 text-xs"
           style={{
-            zIndex: 1,
-            left: pointerX,
-            top: pointerY,
+            zIndex: 1000, // Higher z-index
+            left: Math.min(pointerX, window.innerWidth - 280), // Prevent overflow
+            top: Math.max(pointerY - 10, 10),
           }}
         >
-          {poiData && (
-            <ul>
-              {Object.entries(poiData).map(([key, value]) =>
-                value ? (
-                  <li key={key}>
-                    <span className="font-bold">{key}</span>: {value}
-                  </li>
-                ) : null
-              )}
-            </ul>
-          )}
+          <ul>
+            {Object.entries(poiData).map(([key, value]) =>
+              value ? (
+                <li key={key}>
+                  <span className="font-bold">{key}</span>: {value}
+                </li>
+              ) : null
+            )}
+          </ul>
         </div>
       )
     );
   };
 
-  const INITIAL_VIEW_STATE = {
-    longitude: 9.9911,
-    latitude: 53.5531,
-    zoom: 12,
-  };
-
-  const getRadiusScale = () => {
+  const radiusScale = useMemo(() => {
     return zoom > 12 ? Math.pow(1.3, zoom - 12) : 1;
-  };
+  }, [zoom]);
 
   // Get stroke width based on zoom (reduce stroke at high zoom)
-  const getStrokeWidth = () => {
+  const strokeWidth = useMemo(() => {
     return zoom > 14 ? 0.5 : 1;
-  };
+  }, [zoom]);
 
   // Get stroke opacity (reduce or remove stroke at very high zoom)
-  const getStrokeOpacity = () => {
+  const strokeOpacity = useMemo(() => {
     return zoom > 16 ? 0 : 200;
-  };
+  }, [zoom]);
+
+  // Helper function to get year-based color
+  const getYearBasedColor = useCallback(
+    (
+      year: string,
+      isSelected: boolean = false
+    ): [number, number, number, number] => {
+      // If selected, return a bright highlight color (e.g., bright orange/red)
+      if (isSelected) {
+        return [255, 165, 0, 255]; // Bright orange with full opacity
+      }
+
+      // Original year-based coloring
+      switch (year) {
+        case "2009":
+          return [68, 130, 180, 51]; // most transparent (20% opacity)
+        case "2010":
+          return [68, 130, 180, 68]; // 27% opacity
+        case "2011":
+          return [68, 130, 180, 85]; // 33% opacity
+        case "2012":
+          return [68, 130, 180, 102]; // 40% opacity
+        case "2013":
+          return [68, 130, 180, 119]; // 47% opacity
+        case "2014":
+          return [68, 130, 180, 136]; // 53% opacity
+        case "2015":
+          return [68, 130, 180, 153]; // 60% opacity
+        case "2016":
+          return [68, 130, 180, 170]; // 67% opacity
+        case "2017":
+          return [68, 130, 180, 187]; // 73% opacity
+        case "2018":
+          return [68, 130, 180, 204]; // 80% opacity
+        case "2019":
+          return [68, 130, 180, 221]; // 87% opacity
+        case "2020":
+          return [68, 130, 180, 238]; // 93% opacity
+        case "2021":
+          return [68, 130, 180, 255]; // fully opaque
+        case "2022":
+          return [68, 130, 180, 255]; // fully opaque
+        case "2023":
+          return [68, 130, 180, 255]; // fully opaque
+        default:
+          return [240, 240, 240, 255]; // light gray fallback
+      }
+    },
+    []
+  );
 
   const layers = [
     new MVTLayer({
       id: "accidents",
-      data: "http://localhost:3000/out",
+      data: import.meta.env.PUBLIC_TILESERVER_URL,
       pointRadiusUnits: "pixels",
       getPointRadius: 3, // Larger radius at high zoom
-      pointRadiusScale: getRadiusScale(), // Scale with zoom
-      getLineColor: [0, 0, 0, getStrokeOpacity()],
-      lineWidthScale: getStrokeWidth(),
+      pointRadiusScale: radiusScale, // Scale with zoom
+      getLineColor: [0, 0, 0, strokeOpacity],
+      lineWidthScale: strokeWidth,
       getFillColor: (f) => {
         const year = f.properties.id.split("-")[0];
-
-        switch (year) {
-          case "2009":
-            return [68, 130, 180, 51]; // most transparent (20% opacity)
-          case "2010":
-            return [68, 130, 180, 68]; // 27% opacity
-          case "2011":
-            return [68, 130, 180, 85]; // 33% opacity
-          case "2012":
-            return [68, 130, 180, 102]; // 40% opacity
-          case "2013":
-            return [68, 130, 180, 119]; // 47% opacity
-          case "2014":
-            return [68, 130, 180, 136]; // 53% opacity
-          case "2015":
-            return [68, 130, 180, 153]; // 60% opacity
-          case "2016":
-            return [68, 130, 180, 170]; // 67% opacity
-          case "2017":
-            return [68, 130, 180, 187]; // 73% opacity
-          case "2018":
-            return [68, 130, 180, 204]; // 80% opacity
-          case "2019":
-            return [68, 130, 180, 221]; // 87% opacity
-          case "2020":
-            return [68, 130, 180, 238]; // 93% opacity
-          case "2021":
-            return [68, 130, 180, 255]; // fully opaque
-          case "2022":
-            return [68, 130, 180, 255]; // fully opaque
-          case "2023":
-            return [68, 130, 180, 255]; // fully opaque
-          default:
-            return [240, 240, 240, 255]; // light gray fallback
-        }
+        const isSelected = f.properties.id === selectedPoiId;
+        return getYearBasedColor(year, isSelected);
       },
       updateTriggers: {
         getPointRadius: zoom,
         pointRadiusScale: zoom,
         getLineColor: zoom,
         lineWidthScale: zoom,
+        getFillColor: selectedPoiId
       },
       picking: true,
       pickable: true,
@@ -150,6 +234,14 @@ function Map() {
       initialViewState={INITIAL_VIEW_STATE}
       controller={true}
       layers={layers}
+      onClick={(e) => {
+        if (e.object?.properties?.id) {
+          handlePoiClick(e.object.properties.id);
+        } else {
+          // Click on empty space - clear selection
+          setSelectedPoiId(null);
+        }
+      }}
       onViewStateChange={({ viewState }) => {
         setZoom(viewState.zoom); // Update zoom state when map moves
       }}
@@ -160,13 +252,17 @@ function Map() {
           pointerY: e.y,
         });
       }}
+      getCursor={({ isDragging, isHovering }) => {
+        if (isDragging) return "grabbing";
+        if (isHovering && tooltip.id) return "pointer";
+        return "default"; // Default cursor
+      }}
     >
       <ReactMapGl
         cursor="pointer"
-        mapboxAccessToken="pk.eyJ1IjoicHJleWEyayIsImEiOiJjbTA3cGRxMDkxYXdzMmpzaGh2NWpqb2h2In0.oXjP1_xLjkIFfu4cbIBAgg"
+        mapboxAccessToken={import.meta.env.PUBLIC_MAPBOX_TOKEN}
         style={{ width: "100%", height: "100%" }}
         mapStyle="mapbox://styles/mapbox/streets-v9"
-        interactiveLayerIds={["accidents", "output"]}
       ></ReactMapGl>
       {renderTooltip()}
     </DeckGL>
