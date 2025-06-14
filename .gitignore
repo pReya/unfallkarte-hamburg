@@ -23,6 +23,6 @@ pnpm-debug.log*
 # jetbrains setting folder
 .idea/
 
-.db
-.csv
-.pmtiles
+*.db
+*.csv
+*.pmtiles
