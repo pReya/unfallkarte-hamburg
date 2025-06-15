@@ -25,6 +25,7 @@ function Map() {
     pointerY: null,
   });
 
+  // This holds the data that was fetched from the backend
   const [poiData, setPoiData] = useState<Accident | null>();
   const [zoom, setZoom] = useState(12);
   const [isLoading, setIsLoading] = useState(false);
@@ -112,31 +113,123 @@ function Map() {
 
   const renderTooltip = () => {
     const { id, pointerX, pointerY } = tooltip || {};
-    return (
-      id &&
-      pointerX &&
-      pointerY &&
-      poiData && (
-        <div
-          className="absolute pointer-events-none bg-zinc-500/80 w-64 h-auto p-2 text-xs"
-          style={{
-            zIndex: 1000, // Higher z-index
-            left: Math.min(pointerX, window.innerWidth - 280), // Prevent overflow
-            top: Math.max(pointerY - 10, 10),
-          }}
-        >
-          <ul>
-            {Object.entries(poiData).map(([key, value]) =>
-              value ? (
-                <li key={key}>
-                  <span className="font-bold">{key}</span>: {value}
-                </li>
-              ) : null
-            )}
-          </ul>
-        </div>
-      )
-    );
+
+    if (poiData) {
+      const {
+        Geschl_01,
+        Geschl_02,
+        AV1,
+        AV2,
+        Alter_01,
+        Alter_02,
+        Bet_01,
+        Bet_02,
+        Kz_Bet1,
+        Kz_Bet2,
+        Datum,
+        Zeit,
+        ...restPoiData
+      } = poiData;
+
+      return (
+        id &&
+        pointerX &&
+        pointerY && (
+          <div
+            className="absolute pointer-events-none bg-zinc-500/80 w-64 h-auto p-2 text-xs flex flex-col gap-4"
+            style={{
+              zIndex: 1000, // Higher z-index
+              left: Math.min(pointerX, window.innerWidth - 280), // Prevent overflow
+              top: Math.max(pointerY - 10, 10),
+            }}
+          >
+            <table className="w-full">
+              <tbody>
+                {Datum.trim() && (
+                  <tr>
+                    <td>
+                      <span className="font-bold">Datum: </span>
+                    </td>
+                    <td>
+                      {new Date(Datum).toLocaleDateString("de-DE", {
+                        weekday: "long",
+                        year: "numeric",
+                        month: "numeric",
+                        day: "numeric",
+                      })}
+                    </td>
+                  </tr>
+                )}
+                {Zeit.trim() && (
+                  <tr>
+                    <td>
+                      <span className="font-bold">Zeit: </span>
+                    </td>
+                    <td>{Zeit} Uhr</td>
+                  </tr>
+                )}
+                {Object.entries(restPoiData).map(([key, value]) => {
+                  return String(value).trim() ? (
+                    <tr key={key}>
+                      <td>
+                        <span className="font-bold">{key}</span>:
+                      </td>
+                      <td>{value}</td>
+                    </tr>
+                  ) : null;
+                })}
+              </tbody>
+            </table>
+            <table className="w-full">
+              <thead>
+                <tr>
+                  <th>Bet</th>
+                  <th>1</th>
+                  <th>2</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <span className="font-bold">Geschl:</span>
+                  </td>
+                  <td>{Geschl_01}</td>
+                  <td>{Geschl_02}</td>
+                </tr>
+                <tr>
+                  <td>
+                    <span className="font-bold">AV:</span>
+                  </td>
+                  <td>{AV1}</td>
+                  <td>{AV2}</td>
+                </tr>
+                <tr>
+                  <td>
+                    <span className="font-bold">Alter:</span>
+                  </td>
+                  <td>{Alter_01}</td>
+                  <td>{Alter_02}</td>
+                </tr>
+                <tr>
+                  <td>
+                    <span className="font-bold">Bet:</span>
+                  </td>
+                  <td>{Bet_01}</td>
+                  <td>{Bet_02}</td>
+                </tr>
+                <tr>
+                  <td>
+                    <span className="font-bold">KZ:</span>
+                  </td>
+                  <td>{Kz_Bet1}</td>
+                  <td>{Kz_Bet2}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        )
+      );
+    }
   };
 
   const radiusScale = useMemo(() => {
@@ -222,7 +315,7 @@ function Map() {
         pointRadiusScale: zoom,
         getLineColor: zoom,
         lineWidthScale: zoom,
-        getFillColor: selectedPoiId
+        getFillColor: selectedPoiId,
       },
       picking: true,
       pickable: true,
@@ -259,11 +352,11 @@ function Map() {
       }}
     >
       <ReactMapGl
-        cursor="pointer"
         mapboxAccessToken={import.meta.env.PUBLIC_MAPBOX_TOKEN}
         style={{ width: "100%", height: "100%" }}
-        mapStyle="mapbox://styles/mapbox/streets-v9"
-      ></ReactMapGl>
+        mapStyle="mapbox://styles/mapbox/dark-v9"
+      >
+      </ReactMapGl>
       {renderTooltip()}
     </DeckGL>
   );
