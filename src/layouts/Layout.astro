@@ -24,6 +24,17 @@
     <meta property="og:url" content="https://unfaelle.elbnerds.de" />
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="de_DE" />
+    {
+      import.meta.env.MODE === "production" && (
+        <script
+          async
+          defer
+          src="https://analytics.bitbetter.de/script.js"
+          data-website-id="d627125e-e9f4-4ee3-9505-55645680ddb7"
+          is:inline
+        />
+      )
+    }
   </head>
   <body class="h-full">
     <slot />
