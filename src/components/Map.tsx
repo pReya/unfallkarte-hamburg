@@ -5,6 +5,8 @@ import { MVTLayer } from "deck.gl";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Accident } from "../types/accidents";
 import debounce from "lodash-es/debounce";
+import { HelpOverlay } from "./HelpOverlay";
+import { useClickAway } from "@uidotdev/usehooks";
 
 interface TooltipState {
   id: string | null;
@@ -30,6 +32,11 @@ function Map() {
   const [zoom, setZoom] = useState(12);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedPoiId, setSelectedPoiId] = useState<string | null>(null);
+  const [showHelpOverlay, setShowHelpOverlay] = useState<boolean>(true);
+
+  const ref = useClickAway(() => {
+    setShowHelpOverlay(false);
+  });
 
   const handlePoiClick = useCallback((id: string) => {
     console.log("POI clicked:", id);
@@ -323,42 +330,63 @@ function Map() {
   ];
 
   return (
-    <DeckGL
-      initialViewState={INITIAL_VIEW_STATE}
-      controller={true}
-      layers={layers}
-      onClick={(e) => {
-        if (e.object?.properties?.id) {
-          handlePoiClick(e.object.properties.id);
-        } else {
-          // Click on empty space - clear selection
-          setSelectedPoiId(null);
-        }
-      }}
-      onViewStateChange={({ viewState }) => {
-        setZoom(viewState.zoom); // Update zoom state when map moves
-      }}
-      onHover={(e) => {
-        setTooltip({
-          id: e.object?.properties?.id || undefined,
-          pointerX: e.x,
-          pointerY: e.y,
-        });
-      }}
-      getCursor={({ isDragging, isHovering }) => {
-        if (isDragging) return "grabbing";
-        if (isHovering && tooltip.id) return "pointer";
-        return "default"; // Default cursor
-      }}
-    >
-      <ReactMapGl
-        mapboxAccessToken={import.meta.env.PUBLIC_MAPBOX_TOKEN}
-        style={{ width: "100%", height: "100%" }}
-        mapStyle="mapbox://styles/mapbox/dark-v9"
+    <>
+      <div className="bg-white/50 absolute right-0 top-0 z-40 px-2 py-1 text-sm">
+        <button
+          type="button"
+          className="cursor-pointer hover:underline"
+          title="Hilfe anzeigen"
+          onClick={() => {
+            setShowHelpOverlay(true);
+          }}
+        >
+          Hilfe
+        </button>
+      </div>
+      {showHelpOverlay && (
+        <HelpOverlay
+          ref={ref}
+          onClickOutside={() => {
+            setShowHelpOverlay(false);
+          }}
+        />
+      )}
+      <DeckGL
+        initialViewState={INITIAL_VIEW_STATE}
+        controller={true}
+        layers={layers}
+        onClick={(e) => {
+          if (e.object?.properties?.id) {
+            handlePoiClick(e.object.properties.id);
+          } else {
+            // Click on empty space - clear selection
+            setSelectedPoiId(null);
+          }
+        }}
+        onViewStateChange={({ viewState }) => {
+          setZoom(viewState.zoom); // Update zoom state when map moves
+        }}
+        onHover={(e) => {
+          setTooltip({
+            id: e.object?.properties?.id || undefined,
+            pointerX: e.x,
+            pointerY: e.y,
+          });
+        }}
+        getCursor={({ isDragging, isHovering }) => {
+          if (isDragging) return "grabbing";
+          if (isHovering && tooltip.id) return "pointer";
+          return "default"; // Default cursor
+        }}
       >
-      </ReactMapGl>
-      {renderTooltip()}
-    </DeckGL>
+        <ReactMapGl
+          mapboxAccessToken={import.meta.env.PUBLIC_MAPBOX_TOKEN}
+          style={{ width: "100%", height: "100%" }}
+          mapStyle="mapbox://styles/mapbox/dark-v9"
+        ></ReactMapGl>
+        {renderTooltip()}
+      </DeckGL>
+    </>
   );
 }
 
