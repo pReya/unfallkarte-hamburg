@@ -35,65 +35,65 @@ function Map() {
   const [selectedPoiData, setSelectedPoiData] = useState<Accident | null>(null);
   const [zoom, setZoom] = useState(12);
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedPoiId, setSelectedPoiId] = useState<string | null>(null);
   const [showHelpOverlay, setShowHelpOverlay] = useState<boolean>(true);
-  const tooltipRef = useRef<HTMLDivElement>(null);
 
   const overlayRef = useClickAway<HTMLDivElement>(() => {
     setShowHelpOverlay(false);
   });
 
-  const handlePoiClick = useCallback(
-    (id: string) => {
-      console.log("POI clicked:", id, hoveredPoiData);
-      setSelectedPoiData(hoveredPoiData);
-      setSelectedPoiId(id);
-    },
-    [hoveredPoiData]
-  );
+  const handlePoiClick = useCallback((id: string) => {
+    // console.log("POI clicked:", id, hoveredPoiData);
+    debouncedFetch(id)?.then((newPoiData) => {
+      newPoiData && setSelectedPoiData(newPoiData);
+    });
+  }, []);
 
   // Ref for request cancellation
   const currentFetchController = useRef<AbortController | null>(null);
 
   // Fetch function (not debounced yet)
-  const fetchPoiData = useCallback(async (id: string) => {
-    if (!id) return;
+  const fetchPoiData = useCallback(
+    async (id: string): Promise<undefined | Accident> => {
+      if (!id) return;
 
-    // Abort any ongoing fetch
-    if (currentFetchController.current) {
-      currentFetchController.current.abort();
-    }
-
-    setIsLoading(true);
-    const controller = new AbortController();
-    currentFetchController.current = controller;
-
-    try {
-      const response = await fetch(`/api/poi/${id}`, {
-        signal: controller.signal,
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch POI data");
+      // Abort any ongoing fetch
+      if (currentFetchController.current) {
+        currentFetchController.current.abort();
       }
 
-      const result = await response.json();
+      setIsLoading(true);
+      const controller = new AbortController();
+      currentFetchController.current = controller;
 
-      // Only update if this is still the current request
-      if (!controller.signal.aborted) {
-        setHoveredPoiData(result);
+      try {
+        const response = await fetch(`/api/poi/${id}`, {
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch POI data");
+        }
+
+        const result = await response.json();
+
+        // Only update if this is still the current request
+        if (!controller.signal.aborted) {
+          return result as Accident;
+        }
+        return;
+      } catch (error) {
+        if (error instanceof Error && error.name !== "AbortError") {
+          console.error("Error fetching POI data:", error);
+          return;
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsLoading(false);
+        }
       }
-    } catch (error) {
-      if (error instanceof Error && error.name !== "AbortError") {
-        console.error("Error fetching POI data:", error);
-        setHoveredPoiData(null);
-      }
-    } finally {
-      if (!controller.signal.aborted) {
-        setIsLoading(false);
-      }
-    }
-  }, []);
+    },
+    []
+  );
 
   // Create debounced version using lodash
   const debouncedFetch = useMemo(
@@ -104,7 +104,9 @@ function Map() {
   // Effect to handle tooltip ID changes
   useEffect(() => {
     if (tooltip.id) {
-      debouncedFetch(tooltip.id);
+      debouncedFetch(tooltip.id)?.then((newPoiData) => {
+        newPoiData && setHoveredPoiData(newPoiData);
+      });
     } else {
       // Clear data immediately when hovering away
       setHoveredPoiData(null);
@@ -175,7 +177,7 @@ function Map() {
       lineWidthScale: strokeWidth,
       getFillColor: (f) => {
         const year = f.properties.id.split("-")[0];
-        const isSelected = f.properties.id === selectedPoiId;
+        const isSelected = f.properties.id === selectedPoiData?.GlobalId;
         return getYearBasedColor(year, isSelected);
       },
       updateTriggers: {
@@ -183,7 +185,7 @@ function Map() {
         pointRadiusScale: zoom,
         getLineColor: zoom,
         lineWidthScale: zoom,
-        getFillColor: selectedPoiId,
+        getFillColor: selectedPoiData,
       },
       picking: true,
       pickable: true,
@@ -206,7 +208,10 @@ function Map() {
       </div>
       {showHelpOverlay && <HelpOverlay ref={overlayRef} />}
       {selectedPoiData && (
-        <Sidebar className="absolute left-0 top-0 bottom-0 max-w-128" poiData={selectedPoiData} />
+        <Sidebar
+          className="absolute left-0 top-0 bottom-0 max-w-128"
+          poiData={selectedPoiData}
+        />
       )}
       <div className="relative h-full">
         <DeckGL
@@ -218,7 +223,6 @@ function Map() {
               handlePoiClick(e.object.properties.id);
             } else {
               // Click on empty space - clear selection
-              setSelectedPoiId(null);
               setSelectedPoiData(null);
             }
           }}
