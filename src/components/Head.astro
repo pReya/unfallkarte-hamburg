@@ -1,0 +1,40 @@
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <meta name="generator" content={Astro.generator} />
+  <title>Unfallkarte Hamburg</title>
+  <meta
+    name="description"
+    content="Eine Visualisierung aller Verkehrsunfälle in Hamburg zwischen 2009 und 2023 aus der polizeilichen Unfalldatenbank EUSKa (Elektronische Unfalltypensteckkarte)."
+  />
+  <meta
+    name="keywords"
+    content="Hamburg, OpenData, Verkehrsunfälle, Unfallstatistik"
+  />
+  <meta name="author" content="Moritz Stückler" />
+  <meta property="og:title" content="Polizeiliche Unfallkarte Hamburg" />
+  <meta property="og:site_name" content="unfallkarte-hamburg.de" />
+  <meta
+    property="og:description"
+    content="Eine Visualisierung aller Verkehrsunfälle in Hamburg zwischen 2009 und 2023 aus der polizeilichen Unfalldatenbank EUSKa (Elektronische Unfalltypensteckkarte)."
+  />
+  <meta
+    property="og:image"
+    content={`${Astro.site}/unfaelle_og.jpg`}
+  />
+  <meta property="og:url" content={Astro.site} />
+  <meta property="og:type" content="website" />
+  <meta property="og:locale" content="de_DE" />
+  {
+    import.meta.env.MODE === "production" && (
+      <script
+        async
+        defer
+        src="https://analytics.bitbetter.de/script.js"
+        data-website-id="d627125e-e9f4-4ee3-9505-55645680ddb7"
+        is:inline
+      />
+    )
+  }
+</head>
