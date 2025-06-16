@@ -3,7 +3,7 @@
   "type": "module",
   "version": "0.0.1",
   "scripts": {
-    "dev": "astro dev --remote --host",
+    "dev": "astro dev --remote",
     "build": "astro build --remote",
     "preview": "astro preview",
     "astro": "astro"
@@ -15,6 +15,7 @@
     "@tailwindcss/vite": "^4.1.7",
     "@uidotdev/usehooks": "^2.4.1",
     "astro": "^5.8.0",
+    "clsx": "^2.1.1",
     "deck.gl": "^9.1.12",
     "lodash-es": "^4.17.21",
     "mapbox-gl": "^3.12.0",
