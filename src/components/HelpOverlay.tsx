@@ -1,9 +1,8 @@
 import type { ComponentPropsWithRef } from "react";
 
-interface HelpOverlayProps extends ComponentPropsWithRef<"div"> {
-}
+interface HelpOverlayProps extends ComponentPropsWithRef<"div"> {}
 
-export function HelpOverlay({ref }: HelpOverlayProps) {
+export function HelpOverlay({ ref }: HelpOverlayProps) {
   return (
     <div className="absolute inset-0 w-full h-full bg-black/50 flex items-center justify-center z-30">
       <div
@@ -17,7 +16,7 @@ export function HelpOverlay({ref }: HelpOverlayProps) {
           Unfalldatenbank EUSKa (Elektronische Unfalltypensteckkarte). Sie
           wurden durch{" "}
           <a
-            href="https://github.com/pReya/unfallstatistik-hamburg-daten"
+            href="https://github.com/pReya/unfallkarte-hamburg-daten"
             target="_blank"
           >
             mehrere Informationsfreiheitsgesetz(IFG)-Anfragen
@@ -31,7 +30,7 @@ export function HelpOverlay({ref }: HelpOverlayProps) {
           darstellen kann. Der{" "}
           <a
             className=""
-            href="https://github.com/preya/unfallstatistik-hamburg"
+            href="https://github.com/preya/unfallkarte-hamburg"
             target="_blank"
           >
             Quelltext der Anwendung
@@ -39,7 +38,7 @@ export function HelpOverlay({ref }: HelpOverlayProps) {
           steht unter einer Open-Source-Lizenz zur freien Verfügung.
         </p>
         <h3 className="text-lg font-semibold">Impressum & Kontakt</h3>
-        <p>Moritz Stückler (unfaelle "ätt" elbnerds.de)</p>
+        <p>Moritz Stückler (info "ätt" unfallkarte-hamburg.de)</p>
       </div>
     </div>
   );
