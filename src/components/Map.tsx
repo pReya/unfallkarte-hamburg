@@ -209,7 +209,7 @@ function Map() {
       {showHelpOverlay && <HelpOverlay ref={overlayRef} />}
       {selectedPoiData && (
         <Sidebar
-          className="absolute left-0 top-0 bottom-0 max-w-128"
+          className="absolute left-0 top-0 bottom-0 w-1/4 max-w-128"
           poiData={selectedPoiData}
         />
       )}

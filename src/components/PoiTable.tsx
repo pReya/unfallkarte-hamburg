@@ -28,8 +28,8 @@ export function PoiTable({
     ...restPoiData
   } = poiData;
   return (
-    <>
-      <table className={clsx("w-full table-fixed", className)}>
+    <div className={clsx("flex flex-col gap-8", className)}>
+      <table className="w-full table-fixed">
         <thead>
           <tr>
             <td className="w-1/2 !p-0"></td>
@@ -92,7 +92,7 @@ export function PoiTable({
       <table className="w-full table-fixed">
         <thead>
           <tr>
-            <th className="w-1/2">Bet</th>
+            <th className="w-1/2">Beteiligte</th>
             <th className="w-1/4">1</th>
             <th className="w-1/4">2</th>
           </tr>
@@ -175,6 +175,6 @@ export function PoiTable({
           </tr>
         </tbody>
       </table>
-    </>
+    </div>
   );
 }

@@ -172,14 +172,14 @@ export const legend: Record<
   },
   BAB_Km: { description: "Autobahnkilometer" },
   M: { description: "Autobahnmeter (Bezug Autobahnkilometer)" },
-  Geschl_01: { description: "Geschlecht des/der 01" },
+  Geschl_01: { description: "Geschlecht" },
   Geschl_02: { description: "Geschlecht des/der 02" },
-  Alter_01: { description: "Alter des/der 01" },
+  Alter_01: { description: "Alter" },
   Alter_02: { description: "Alter des/der 02" },
-  Kz_Bet1: { description: "Zulassungsbezirk des 01" },
+  Kz_Bet1: { description: "Zulassungsbezirk" },
   Kz_Bet2: { description: "Zulassungsbezirk des 02" },
   Bet_01: {
-    description: "Beteiligungsart des 01",
+    description: "Beteiligungsart",
     values: {
       RF: "Radfahrer",
       PKW: "PKW",

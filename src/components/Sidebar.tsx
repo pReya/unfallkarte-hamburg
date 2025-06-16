@@ -9,7 +9,7 @@ interface SidebarProps {
 export function Sidebar({ poiData, className }: SidebarProps) {
   return (
     <aside
-      className={clsx("bg-white/80 h-full z-40 flex flex-col gap-8 p-4 text-xs overflow-y-auto", className)}
+      className={clsx("bg-white/80 h-full z-40 p-4 text-xs overflow-y-auto", className)}
     >
       <PoiTable poiData={poiData} className="[&_td]:py-2" showDescriptions />
     </aside>
