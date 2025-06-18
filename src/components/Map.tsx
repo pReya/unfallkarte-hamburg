@@ -1,7 +1,7 @@
 import "mapbox-gl/dist/mapbox-gl.css";
 import ReactMapGl from "react-map-gl/mapbox";
 import DeckGL from "@deck.gl/react";
-import { MVTLayer } from "deck.gl";
+import { MVTLayer, type PickingInfo } from "deck.gl";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Accident } from "../types/accidents";
 import debounce from "lodash-es/debounce";
@@ -41,19 +41,12 @@ function Map() {
     setShowHelpOverlay(false);
   });
 
-  const handlePoiClick = useCallback((id: string) => {
-    // console.log("POI clicked:", id, hoveredPoiData);
-    debouncedFetch(id)?.then((newPoiData) => {
-      newPoiData && setSelectedPoiData(newPoiData);
-    });
-  }, []);
-
-  // Ref for request cancellation
-  const currentFetchController = useRef<AbortController | null>(null);
-
   // Fetch function (not debounced yet)
   const fetchPoiData = useCallback(
-    async (id: string): Promise<undefined | Accident> => {
+    async (
+      id: string,
+      mode: "hover" | "click"
+    ): Promise<undefined | Accident> => {
       if (!id) return;
 
       // Abort any ongoing fetch
@@ -78,13 +71,16 @@ function Map() {
 
         // Only update if this is still the current request
         if (!controller.signal.aborted) {
-          return result as Accident;
+          if (mode === "hover") {
+            setHoveredPoiData(result);
+          } else if (mode === "click") {
+            setSelectedPoiData(result);
+          }
+          return result;
         }
-        return;
       } catch (error) {
         if (error instanceof Error && error.name !== "AbortError") {
           console.error("Error fetching POI data:", error);
-          return;
         }
       } finally {
         if (!controller.signal.aborted) {
@@ -96,37 +92,54 @@ function Map() {
   );
 
   // Create debounced version using lodash
-  const debouncedFetch = useMemo(
-    () => debounce(fetchPoiData, 300),
-    [fetchPoiData]
+  const debouncedFetch = useCallback(debounce(fetchPoiData, 300), [
+    debounce,
+    fetchPoiData,
+  ]);
+
+  const handlePoiClick = useCallback(
+    (id: string) => {
+      debouncedFetch(id, "click");
+    },
+    [debouncedFetch]
   );
 
-  // Effect to handle tooltip ID changes
-  useEffect(() => {
-    if (tooltip.id) {
-      debouncedFetch(tooltip.id)?.then((newPoiData) => {
-        newPoiData && setHoveredPoiData(newPoiData);
+  const handlePoiHover = useCallback(
+    (e: PickingInfo) => {
+      const id = e.object?.properties?.id;
+      setTooltip({
+        id: id || null,
+        pointerX: e.x,
+        pointerY: e.y,
       });
-    } else {
-      // Clear data immediately when hovering away
-      setHoveredPoiData(null);
-      setIsLoading(false);
 
-      // Cancel debounced function and any pending requests
-      debouncedFetch.cancel();
-      if (currentFetchController.current) {
-        currentFetchController.current.abort();
+      if (id) {
+        debouncedFetch(id, "hover");
+      } else {
+        // Clear data and cancel pending requests when not hovering over a POI
+        setHoveredPoiData(null);
+        setIsLoading(false);
+        debouncedFetch.cancel();
+        if (currentFetchController.current) {
+          currentFetchController.current.abort();
+        }
       }
-    }
+    },
+    [setTooltip, debouncedFetch]
+  );
 
-    // Cleanup on unmount
+  // Ref for request cancellation
+  const currentFetchController = useRef<AbortController | null>(null);
+
+  // This effect only handles unmounting
+  useEffect(() => {
     return () => {
       debouncedFetch.cancel();
       if (currentFetchController.current) {
         currentFetchController.current.abort();
       }
     };
-  }, [tooltip.id, debouncedFetch]);
+  }, []);
 
   const renderTooltip = () => {
     const { id, pointerX, pointerY } = tooltip || {};
@@ -229,13 +242,7 @@ function Map() {
           onViewStateChange={({ viewState }) => {
             setZoom(viewState.zoom); // Update zoom state when map moves
           }}
-          onHover={(e) => {
-            setTooltip({
-              id: e.object?.properties?.id || undefined,
-              pointerX: e.x,
-              pointerY: e.y,
-            });
-          }}
+          onHover={handlePoiHover}
           getCursor={({ isDragging, isHovering }) => {
             if (isDragging) return "grabbing";
             if (isHovering && tooltip.id) return "pointer";
