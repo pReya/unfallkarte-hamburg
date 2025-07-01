@@ -14,7 +14,7 @@ export function HelpOverlay({ ref }: HelpOverlayProps) {
           <h2 className="text-lg font-semibold">Was ist das hier?</h2>
           <p>
             Diese Karte ist eine Visualisierung aller Verkehrsunfälle in Hamburg
-            zwischen 2009 und 2023. Die Daten stammen aus der polizeilichen
+            zwischen 2009 und 2024. Die Daten stammen aus der polizeilichen
             Unfalldatenbank EUSKa (Elektronische Unfalltypensteckkarte). Sie
             wurden durch{" "}
             <a

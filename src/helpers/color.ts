@@ -2,44 +2,49 @@ export function getYearBasedColor(
   year: string,
   isSelected: boolean = false
 ): [number, number, number, number] {
-  // If selected, return a bright highlight color (e.g., bright orange/red)
   if (isSelected) {
-    return [255, 165, 0, 255]; // Bright orange with full opacity
+    return [255, 165, 0, 255]; // Bright orange for selection
   }
 
-  // Original year-based coloring
+  // 16 years: 2009–2024
+  // Alpha steps from 80 (oldest) to 255 (newest), 16 steps
+  // Step size: (255 - 80) / 15 = 11.67 ≈ 12
+  // So: 80, 92, 104, ..., 255
+
   switch (year) {
     case "2009":
-      return [68, 130, 180, 51]; // most transparent (20% opacity)
+      return [210, 225, 245, 80];
     case "2010":
-      return [68, 130, 180, 68]; // 27% opacity
+      return [185, 210, 235, 92];
     case "2011":
-      return [68, 130, 180, 85]; // 33% opacity
+      return [155, 195, 225, 104];
     case "2012":
-      return [68, 130, 180, 102]; // 40% opacity
+      return [125, 180, 215, 116];
     case "2013":
-      return [68, 130, 180, 119]; // 47% opacity
+      return [95, 165, 205, 128];
     case "2014":
-      return [68, 130, 180, 136]; // 53% opacity
+      return [70, 150, 195, 140];
     case "2015":
-      return [68, 130, 180, 153]; // 60% opacity
+      return [50, 135, 185, 152];
     case "2016":
-      return [68, 130, 180, 170]; // 67% opacity
+      return [35, 120, 175, 164];
     case "2017":
-      return [68, 130, 180, 187]; // 73% opacity
+      return [25, 105, 165, 176];
     case "2018":
-      return [68, 130, 180, 204]; // 80% opacity
+      return [15, 90, 155, 188];
     case "2019":
-      return [68, 130, 180, 221]; // 87% opacity
+      return [10, 75, 145, 200];
     case "2020":
-      return [68, 130, 180, 238]; // 93% opacity
+      return [8, 60, 135, 212];
     case "2021":
-      return [68, 130, 180, 255]; // fully opaque
+      return [6, 50, 125, 224];
     case "2022":
-      return [68, 130, 180, 255]; // fully opaque
+      return [4, 40, 115, 236];
     case "2023":
-      return [68, 130, 180, 255]; // fully opaque
+      return [2, 30, 105, 248];
+    case "2024":
+      return [1, 20, 95, 255];
     default:
-      return [240, 240, 240, 255]; // light gray fallback
+      return [240, 240, 240, 255]; // Light gray fallback
   }
 }
